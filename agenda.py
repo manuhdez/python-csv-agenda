@@ -38,11 +38,11 @@ class Agenda:
     def __init__(self, filePath):
         self.contactList = []
         self.filePath = filePath
-        # self.file = open(filePath, 'r+')
+        self.file = open(filePath, 'r+')
         self.header = []
         self.importFromCSV()
 
-    def añadirContacto(self):
+    def addNewContact(self, callback):
         localFile = open(self.filePath, 'a')
         writer = csv.writer(localFile)
         name = input('\nenter name:\n')
@@ -55,6 +55,7 @@ class Agenda:
         writer.writerow(newContact.getInfo())
         print(bcolors.OKGREEN + '\ncontacto guardado:',
               str(newContact.getInfo()))
+        callback()
 
     def importFromCSV(self):
         print('importando contactos...')
@@ -71,7 +72,7 @@ class Agenda:
         print(bcolors.OKGREEN + 'se han importando ' +
               str(len(fileContent)) + ' contactos\n' + bcolors.ENDC)
 
-    def buscarContacto(self):
+    def buscarContacto(self, callback):
         inputFilter = input('introduce el campo de busqueda\n')
         filterField = ''
         columnIndex = False
@@ -92,6 +93,8 @@ class Agenda:
         else:
             print(bcolors.FAIL + 'el campo que buscas no existe')
 
+        callback()
+
     def getContactsByColumn(self, columnIndex, filter):
         coincidences = []
         for contact in self.contactList:
@@ -106,11 +109,11 @@ class Agenda:
     def getTableHeader(self):
         return self.header
 
-    def imprimirContactos(self, printMode):
+    def printContactList(self, printMode, callback):
         tableHeader = str(self.getTableHeader())
         printed = 0
         for contact in self.contactList:
-            if (printMode == 'no'):
+            if (printMode == 'all'):
                 if printed == 0:
                     print('\n' + bcolors.OKBLUE + tableHeader + bcolors.ENDC)
                     printed = 1
@@ -123,19 +126,46 @@ class Agenda:
                 print(contact.getFullName())
             elif printMode == 'numero':
                 print(contact.getNumber())
+        callback()
 
 
-# inicializar agenda al arrancar la aplicacion
-agenda = Agenda('./agenda.csv')
+class App:
+    def __init__(self, agenda):
+        self.agenda = agenda
+        print('Welcome to Python CSV Agenda!\n')
+        self.start()
+
+    def start(self):
+        mode = input(
+            'Which action do you want to perform?\n"search", "add" or "list"')
+        if mode == 'search':
+            self.searchMode()
+        elif mode == 'add':
+            self.addMode()
+        elif mode == 'list':
+            self.listMode()
+
+    def listMode(self):
+        printMode = input(
+            'Do you want to print a specific column or "all" columns?')
+        self.agenda.printContactList(printMode, self.restart)
+
+    def addMode(self):
+        self.agenda.addNewContact(self.restart)
+
+    def searchMode(self):
+        self.agenda.buscarContacto(self.restart)
+
+    def restart(self):
+        restart = input('Do you want a perform other operations? "y" or "n"\n')
+        if restart == 'y':
+            self.start()
+        elif restart == 'n':
+            print('Goodbye!')
+            exit()
+
+    # inicializar agenda al arrancar la aplicacion
+    # agenda = Agenda('./my-agenda.csv')
 
 
-# preguntar el modo de ejecucion
-print('Bienvenido a tu agenda!\n')
-mode = input('¿Quieres "añadir" o "buscar" un contacto?\n')
-if (mode == 'añadir'):
-    agenda.añadirContacto()
-elif (mode == 'buscar'):
-    agenda.buscarContacto()
-elif (mode == 'list'):
-    printMode = input('¿quieres añadir un filtro?')
-    agenda.imprimirContactos(printMode)
+App(Agenda('./agenda.csv')).start()
